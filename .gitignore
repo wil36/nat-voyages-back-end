@@ -10,6 +10,7 @@ yarn.lock
 
 # Firebase
 firebase-adminsdk-*.json
+firebase-service-account.json
 serviceAccountKey.json
 
 # Logs
