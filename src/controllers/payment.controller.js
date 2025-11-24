@@ -16,8 +16,9 @@ class PaymentController {
         reservationId,
         amount,
         phoneNumber,
-        passagers,
-        voyageInfo,
+        operatorCode = 'CMR_ORANGE', // Par défaut Orange
+        reference,
+        metadata = {},
       } = req.body;
 
       console.log('\n' + '🎫'.repeat(40));
@@ -26,51 +27,116 @@ class PaymentController {
       console.log('  • Reservation ID    :', reservationId);
       console.log('  • Amount            :', `${amount} XAF`);
       console.log('  • Phone             :', phoneNumber);
+      console.log('  • Operator          :', operatorCode);
       console.log('  • Timestamp         :', new Date().toLocaleString('fr-FR'));
       console.log('');
 
-      try {
-        console.log("\n🔐 Demande de renouvellement de clé secrète MyPVIT");
+      // ========================================
+      // ÉTAPE 1 : Récupérer et vérifier le token depuis Firebase
+      // ========================================
+      console.log('🔍 Récupération du token depuis Firebase...');
+      const tokenRef = db.collection('settings').doc('my_pvit_secret_token');
+      const tokenDoc = await tokenRef.get();
 
-        // Appeler le service MyPVIT et ATTENDRE la réponse
-        const result = await myPVITService.renewSecret();
+      let secretKey;
+      let needsRenewal = false;
 
-        // Après avoir reçu la réponse, on continue
-        console.log("✅ Secret renouvelé, envoi de la réponse au client");
+      if (!tokenDoc.exists) {
+        console.log('⚠️  Token non trouvé dans Firebase');
+        needsRenewal = true;
+      } else {
+        const tokenData = tokenDoc.data();
+        const expirationDate = new Date(tokenData.expiration_date);
+        const now = new Date();
 
-        res.status(200).json({
-          success: true,
-          message: result.message,
-          data: {
-            expiresIn: result.expiresIn,
-            renewedAt: new Date().toISOString(),
-          },
-        });
-      } catch (error) {
-        console.error("❌ Erreur renouvellement secret:", error);
+        console.log('📅 Date actuelle     :', now.toISOString());
+        console.log('📅 Date expiration   :', expirationDate.toISOString());
 
-        res.status(500).json({
-          success: false,
-          message:
-            error.message || "Erreur lors du renouvellement de la clé secrète",
-        });
+        if (expirationDate < now) {
+          console.log('⏰ Token expiré !');
+          needsRenewal = true;
+        } else {
+          console.log('✅ Token valide');
+          secretKey = tokenData.secret;
+        }
       }
-      
 
-      res.status(200).json({
+      // ========================================
+      // ÉTAPE 2 : Renouveler le token si nécessaire
+      // ========================================
+      if (needsRenewal) {
+        console.log('\n🔄 Renouvellement du token nécessaire...');
+        const renewResult = await myPVITService.renewSecret();
+        secretKey = renewResult.secret;
+
+        // Stocker le nouveau token dans Firebase
+        const now = new Date();
+        const expirationDate = new Date(now.getTime() + renewResult.expiresIn * 1000);
+
+        await tokenRef.set({
+          secret: secretKey,
+          expires_in: renewResult.expiresIn,
+          operation_account_code: process.env.MYPVIT_ACCOUNT_CODE,
+          created_at: now.toISOString(),
+          expiration_date: expirationDate.toISOString(),
+          updated_at: now.toISOString(),
+        });
+
+        console.log('✅ Token renouvelé et stocké dans Firebase');
+      }
+
+      // ========================================
+      // ÉTAPE 3 : Initier le paiement avec MyPVIT
+      // ========================================
+      console.log('\n💳 Initiation du paiement avec MyPVIT...');
+
+      const paymentData = {
+        amount,
+        phoneNumber,
+        reference,
+        operatorCode,
+        secretKey, // Passer le token récupéré
+        metadata: {
+          reservationId,
+          ...metadata,
+        },
+      };
+
+      const paymentResult = await myPVITService.initiatePayment(paymentData);
+
+      // ========================================
+      // ÉTAPE 4 : Sauvegarder la transaction dans Firestore
+      // ========================================
+      const transactionRef = await db.collection('payment_transactions').add({
+        reservationId,
+        transactionId: paymentResult.transactionId,
+        merchantReferenceId: paymentResult.merchantReferenceId,
+        amount,
+        phoneNumber,
+        operator: paymentResult.operator || operatorCode,
+        status: paymentResult.status,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      console.log('✅ Transaction sauvegardée:', transactionRef.id);
+      console.log('🎫'.repeat(40) + '\n');
+
+      return res.status(200).json({
         success: true,
-        message: 'Paiement initié avec succès',
+        message: paymentResult.message,
         data: {
-          // transactionId: paymentResult.transactionId,
-          // firestoreId: transactionRef.id,
-          // status: paymentResult.status,
-          // amount,
+          transactionId: paymentResult.transactionId,
+          merchantReferenceId: paymentResult.merchantReferenceId,
+          firestoreId: transactionRef.id,
+          status: paymentResult.status,
+          amount,
         },
       });
     } catch (error) {
       console.error('❌ Erreur initiation paiement:', error);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: error.message || 'Erreur lors de l\'initiation du paiement',
       });
@@ -399,14 +465,18 @@ class PaymentController {
       console.log('📦 Données reçues:', JSON.stringify(req.body, null, 2));
       console.log('');
 
-      const { operation_account_code, secret, expires_in } = req.body;
+      // Supporter les deux formats de MyPVIT
+      const operation_account_code = req.body.operation_account_code || req.body.merchant_operation_account_code;
+      const secret = req.body.secret || req.body.secret_key;
+      const expires_in = req.body.expires_in;
 
       // Validation des données
       if (!operation_account_code || !secret || !expires_in) {
         console.error('❌ Données manquantes dans la requête');
+        console.error('Reçu:', { operation_account_code, secret, expires_in });
         return res.status(400).json({
           success: false,
-          message: 'Données manquantes: operation_account_code, secret et expires_in sont requis',
+          message: 'Données manquantes: operation_account_code (ou merchant_operation_account_code), secret (ou secret_key) et expires_in sont requis',
         });
       }
 
