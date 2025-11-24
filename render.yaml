@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: nat-voyages-backend
+    runtime: node
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: MYPVIT_ENV
+        value: sandbox
+      - key: MYPVIT_BASE_URL
+        value: https://api.mypvit.pro/v2
+      - key: MYPVIT_CODE_URL
+        sync: false
+      - key: MYPVIT_SECRET_KEY
+        sync: false
+      - key: MYPVIT_ACCOUNT_CODE
+        sync: false
+      - key: MYPVIT_PASSWORD
+        sync: false
+      - key: MYPVIT_CALLBACK_URL_CODE
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: STATIC_ID_AGENT_NAT_VOYAGE
+        value: u8Eye0rIVa0gG15xwF8m
+      - key: STATIC_ID_AGENCE_NAT_VOYAGE
+        value: cvnjkcnezjncjekzncjkeznjckez
