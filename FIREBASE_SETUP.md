@@ -6,7 +6,7 @@ Votre `.env` contient une **API Key** au lieu d'une **Private Key** :
 
 ```env
 # ❌ INCORRECT
-FIREBASE_PRIVATE_KEY=AIzaSyC4TbP5sHlzzPgBa04NpiaQBnMnDJxfojQ
+FIREBASE_PRIVATE_KEY=AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
 Cette API Key est pour le **frontend** (navigateur), pas pour le **backend** (serveur).
