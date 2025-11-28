@@ -16,47 +16,50 @@ class PaymentController {
         reservationId,
         amount,
         phoneNumber,
-        operatorCode = 'CMR_ORANGE', // Par défaut Orange
+        operatorCode = "CMR_ORANGE", // Par défaut Orange
         reference,
         metadata = {},
       } = req.body;
 
-      console.log('\n' + '🎫'.repeat(40));
-      console.log('NOUVELLE DEMANDE DE PAIEMENT');
-      console.log('🎫'.repeat(40));
-      console.log('  • Reservation ID    :', reservationId);
-      console.log('  • Amount            :', `${amount} XAF`);
-      console.log('  • Phone             :', phoneNumber);
-      console.log('  • Operator          :', operatorCode);
-      console.log('  • Timestamp         :', new Date().toLocaleString('fr-FR'));
-      console.log('');
+      console.log("\n" + "🎫".repeat(40));
+      console.log("NOUVELLE DEMANDE DE PAIEMENT");
+      console.log("🎫".repeat(40));
+      console.log("  • Reservation ID    :", reservationId);
+      console.log("  • Amount            :", `${amount} XAF`);
+      console.log("  • Phone             :", phoneNumber);
+      console.log("  • Operator          :", operatorCode);
+      console.log(
+        "  • Timestamp         :",
+        new Date().toLocaleString("fr-FR")
+      );
+      console.log("");
 
       // ========================================
       // ÉTAPE 1 : Récupérer et vérifier le token depuis Firebase
       // ========================================
-      console.log('🔍 Récupération du token depuis Firebase...');
-      const tokenRef = db.collection('settings').doc('my_pvit_secret_token');
+      console.log("🔍 Récupération du token depuis Firebase...");
+      const tokenRef = db.collection("settings").doc("my_pvit_secret_token");
       const tokenDoc = await tokenRef.get();
 
       let secretKey;
       let needsRenewal = false;
 
       if (!tokenDoc.exists) {
-        console.log('⚠️  Token non trouvé dans Firebase');
+        console.log("⚠️  Token non trouvé dans Firebase");
         needsRenewal = true;
       } else {
         const tokenData = tokenDoc.data();
         const expirationDate = new Date(tokenData.expiration_date);
         const now = new Date();
 
-        console.log('📅 Date actuelle     :', now.toISOString());
-        console.log('📅 Date expiration   :', expirationDate.toISOString());
+        console.log("📅 Date actuelle     :", now.toISOString());
+        console.log("📅 Date expiration   :", expirationDate.toISOString());
 
         if (expirationDate < now) {
-          console.log('⏰ Token expiré !');
+          console.log("⏰ Token expiré !");
           needsRenewal = true;
         } else {
-          console.log('✅ Token valide');
+          console.log("✅ Token valide");
           secretKey = tokenData.secret;
         }
       }
@@ -65,30 +68,92 @@ class PaymentController {
       // ÉTAPE 2 : Renouveler le token si nécessaire
       // ========================================
       if (needsRenewal) {
-        console.log('\n🔄 Renouvellement du token nécessaire...');
-        const renewResult = await myPVITService.renewSecret();
-        secretKey = renewResult.secret;
+        console.log("\n🔄 Renouvellement du token nécessaire...");
 
-        // Stocker le nouveau token dans Firebase
-        const now = new Date();
-        const expirationDate = new Date(now.getTime() + renewResult.expiresIn * 1000);
+        // Marquer le token comme expiré dans Firebase
+        await tokenRef.set(
+          {
+            status: "Expired",
+            updated_at: new Date().toISOString(),
+          },
+          { merge: true }
+        );
 
-        await tokenRef.set({
-          secret: secretKey,
-          expires_in: renewResult.expiresIn,
-          operation_account_code: process.env.MYPVIT_ACCOUNT_CODE,
-          created_at: now.toISOString(),
-          expiration_date: expirationDate.toISOString(),
-          updated_at: now.toISOString(),
+        console.log("📝 Statut mis à jour: Expired");
+        console.log("📤 Lancement de la requête de renouvellement...");
+
+        // Lancer la requête de renouvellement (non bloquante pour le callback)
+        myPVITService.renewSecret().catch((err) => {
+          console.error("❌ Erreur renouvellement:", err.message);
         });
 
-        console.log('✅ Token renouvelé et stocké dans Firebase');
+        console.log("⏳ Attente du callback MyPVIT...");
+        console.log("👂 Écoute en temps réel des changements Firebase...");
+
+        // Créer une Promise qui résout quand le token est reçu
+        secretKey = await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            unsubscribe();
+            reject(
+              new Error(
+                "Timeout: Le callback MyPVIT n'a pas répondu dans les 60 secondes"
+              )
+            );
+          }, 60000); // 60 secondes
+
+          // Écouter les changements en temps réel sur le document
+          const unsubscribe = tokenRef.onSnapshot(
+            (snapshot) => {
+              if (snapshot.exists) {
+                const tokenData = snapshot.data();
+
+                console.log(
+                  `📊 Changement détecté - Statut: ${tokenData.status || "N/A"}`
+                );
+
+                if (tokenData.status === "Active" && tokenData.secret) {
+                  console.log("✅ Token reçu via callback en temps réel !");
+                  clearTimeout(timeout);
+                  unsubscribe();
+                  resolve(tokenData.secret);
+                }
+              }
+            },
+            (error) => {
+              console.error("❌ Erreur listener Firestore:", error);
+              clearTimeout(timeout);
+              unsubscribe();
+              reject(error);
+            }
+          );
+        }).catch((error) => {
+          console.error("❌", error.message);
+          return res.status(500).json({
+            success: false,
+            message:
+              "Timeout lors du renouvellement du token. Veuillez réessayer.",
+            error: "TOKEN_RENEWAL_TIMEOUT",
+          });
+        });
+
+        if (!secretKey) {
+          // Si on arrive ici c'est qu'il y a eu timeout
+          return res.status(500).json({
+            success: false,
+            message:
+              "Timeout lors du renouvellement du token. Veuillez réessayer.",
+            error: "TOKEN_RENEWAL_TIMEOUT",
+          });
+        }
+
+        console.log("✅ Token récupéré depuis Firebase après callback");
+        console.log("🔑 Secret:", secretKey);
       }
 
       // ========================================
       // ÉTAPE 3 : Initier le paiement avec MyPVIT
       // ========================================
-      console.log('\n💳 Initiation du paiement avec MyPVIT...');
+      console.log("\n💳 Initiation du paiement avec MyPVIT...");
 
       const paymentData = {
         amount,
@@ -107,7 +172,8 @@ class PaymentController {
       // ========================================
       // ÉTAPE 4 : Sauvegarder la transaction dans Firestore
       // ========================================
-      const transactionRef = await db.collection('payment_transactions').add({
+
+      const transactionRef = await db.collection("payment_transactions").add({
         reservationId,
         transactionId: paymentResult.transactionId,
         merchantReferenceId: paymentResult.merchantReferenceId,
@@ -119,8 +185,36 @@ class PaymentController {
         updatedAt: new Date().toISOString(),
       });
 
-      console.log('✅ Transaction sauvegardée:', transactionRef.id);
-      console.log('🎫'.repeat(40) + '\n');
+      console.log("✅ Transaction sauvegardée:", transactionRef.id);
+
+      // ========================================
+      // ÉTAPE 5 : Mettre à jour les ventes avec le transaction ID MyPVIT
+      // ========================================
+      console.log("📝 Mise à jour des ventes avec transaction_mypvit_id...");
+
+      const ventesQuery = await db
+        .collection("ventes")
+        .where("reservationId", "==", reservationId)
+        .get();
+
+      if (!ventesQuery.empty) {
+        const batch = db.batch();
+
+        ventesQuery.forEach((doc) => {
+          batch.update(doc.ref, {
+            transaction_mypvit_id: paymentResult.transactionId,
+            transaction_status: paymentResult.status,
+            updatedAt: new Date().toISOString(),
+          });
+        });
+
+        await batch.commit();
+        console.log(`✅ ${ventesQuery.size} vente(s) mise(s) à jour avec transaction_mypvit_id: ${paymentResult.transactionId}`);
+      } else {
+        console.warn(`⚠️  Aucune vente trouvée pour reservationId: ${reservationId}`);
+      }
+
+      console.log("🎫".repeat(40) + "\n");
 
       return res.status(200).json({
         success: true,
@@ -247,46 +341,86 @@ class PaymentController {
       console.log('  • Operator          :', operator || 'N/A');
       console.log('');
 
-      // Trouver la transaction dans Firestore
+      // Mettre à jour la transaction dans payment_transactions
       const transactionQuery = await db
         .collection('payment_transactions')
         .where('transactionId', '==', transactionId)
         .limit(1)
         .get();
 
-      if (transactionQuery.empty) {
-        console.warn('⚠️  Transaction introuvable:', transactionId);
+      if (!transactionQuery.empty) {
+        const transactionDoc = transactionQuery.docs[0];
+        await transactionDoc.ref.update({
+          status,
+          operator,
+          webhookReceivedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        console.log(`✅ Transaction ${transactionId} mise à jour dans payment_transactions`);
+      }
+
+      // Trouver et mettre à jour les ventes via transaction_mypvit_id
+      console.log(`🔍 Recherche des ventes avec transaction_mypvit_id: ${transactionId}`);
+
+      const ventesQuery = await db
+        .collection('ventes')
+        .where('transaction_mypvit_id', '==', transactionId)
+        .get();
+
+      if (ventesQuery.empty) {
+        console.warn('⚠️  Aucune vente trouvée pour transaction_mypvit_id:', transactionId);
         // Répondre quand même avec succès pour éviter les retries
         return res.status(200).json({
           success: true,
           transactionId,
-          message: 'Transaction reçue',
+          message: 'Webhook reçu mais aucune vente trouvée',
         });
       }
 
-      const transactionDoc = transactionQuery.docs[0];
-      const transactionData = transactionDoc.data();
+      console.log(`📦 ${ventesQuery.size} vente(s) trouvée(s)`);
 
-      // Mettre à jour le statut
-      await transactionDoc.ref.update({
-        status,
-        operator,
-        webhookReceivedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      // Mettre à jour toutes les ventes avec le nouveau statut
+      const batch = db.batch();
+
+      ventesQuery.forEach((doc) => {
+        batch.update(doc.ref, {
+          transaction_status: status,
+          webhookReceivedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
       });
 
-      console.log(`✅ Transaction ${transactionId} mise à jour: ${status}`);
+      await batch.commit();
+      console.log(`✅ ${ventesQuery.size} vente(s) mise(s) à jour avec status: ${status}`);
 
       // Si paiement réussi, marquer les ventes comme payées
       if (status === 'SUCCESS') {
-        console.log('💰 Paiement réussi ! Marquage des ventes...');
-        await this.markReservationAsPaid(transactionData.reservationId);
+        console.log('💰 Paiement réussi ! Marquage des ventes comme "Payer"...');
+        const payBatch = db.batch();
+
+        ventesQuery.forEach((doc) => {
+          payBatch.update(doc.ref, {
+            status: 'Payer',
+            paymentConfirmedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        });
+
+        await payBatch.commit();
+        console.log(`✅ ${ventesQuery.size} vente(s) marquée(s) comme payée(s)`);
       }
 
-      // Si paiement échoué, libérer les places
+      // Si paiement échoué, marquer les ventes comme annulées et libérer les places
       if (status === 'FAILED') {
-        console.log('❌ Paiement échoué ! Libération des places...');
-        await this.releaseReservation(transactionData.reservationId);
+        console.log('❌ Paiement échoué ! Annulation des ventes et libération des places...');
+
+        // Récupérer le reservationId depuis la première vente
+        const firstVente = ventesQuery.docs[0].data();
+        const reservationId = firstVente.reservationId;
+
+        if (reservationId) {
+          await this.releaseReservation(reservationId);
+        }
       }
 
       console.log('\n' + '✅'.repeat(40));
@@ -498,6 +632,7 @@ class PaymentController {
         created_at: now.toISOString(),
         expiration_date: expirationDate.toISOString(),
         updated_at: now.toISOString(),
+        status: "Active",
       };
 
       // Référence au document dans Firestore

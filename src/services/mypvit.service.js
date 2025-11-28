@@ -131,79 +131,79 @@ class MyPVITService {
         amount,
         phoneNumber,
         reference = this.generateReference(),
-        operatorCode = 'CMR_ORANGE',
+        operatorCode = "CMR_ORANGE",
         secretKey,
         metadata = {},
       } = paymentData;
 
-      // Validation
-      if (amount < this.config.minAmount) {
-        throw new Error(`Montant minimum: ${this.config.minAmount} XAF`);
-      }
+      // // Validation
+      // if (amount < this.config.minAmount) {
+      //   throw new Error(`Montant minimum: ${this.config.minAmount} XAF`);
+      // }
 
-      if (amount > this.config.maxAmount) {
-        throw new Error(`Montant maximum: ${this.config.maxAmount} XAF`);
-      }
+      // if (amount > this.config.maxAmount) {
+      //   throw new Error(`Montant maximum: ${this.config.maxAmount} XAF`);
+      // }
 
-      if (!phoneNumber) {
-        throw new Error('Numéro de téléphone requis');
-      }
+      // if (!phoneNumber) {
+      //   throw new Error('Numéro de téléphone requis');
+      // }
 
-      if (!secretKey) {
-        throw new Error('Clé secrète requise');
-      }
+      // if (!secretKey) {
+      //   throw new Error('Clé secrète requise');
+      // }
 
-      console.log('\n' + '💳'.repeat(40));
+      console.log("\n" + "💳".repeat(40));
       console.log(`INITIATION PAIEMENT MYPVIT`);
-      console.log('💳'.repeat(40));
-      console.log('  • Montant           :', `${amount} XAF`);
-      console.log('  • Téléphone         :', phoneNumber);
-      console.log('  • Référence         :', reference);
-      console.log('  • Opérateur         :', operatorCode);
-      console.log('');
+      console.log("💳".repeat(40));
+      console.log("  • Montant           :", `${amount} XAF`);
+      console.log("  • Téléphone         :", phoneNumber);
+      console.log("  • Référence         :", reference);
+      console.log("  • Opérateur         :", operatorCode);
+      console.log("");
 
       // Endpoint complet avec le code URL
       const paymentURL = `https://api.mypvit.pro/v2/NZLCPGMDDCTCXQQL/rest`;
 
       const payload = {
-        agent: 'NAT-VOYAGE',
-        amount: parseInt(amount),
-        product: metadata.reservationId || 'VOYAGE',
+        agent: "NAT-VOYAGE",
+        amount: parseInt(amount) || 800,
+        product: metadata.reservationId || "VOYAGE",
         reference: reference,
-        service: 'RESTFUL',
-        callback_url_code: this.config.callbackURLCode,
-        customer_account_number: phoneNumber.replace(/\s+/g, ''),
-        merchant_operation_account_code: this.config.accountCode,
-        transaction_type: 'PAYMENT',
-        owner_charge: 'CUSTOMER',
-        operator_owner_charge: 'MERCHANT',
-        free_info: JSON.stringify(metadata),
-        operator_code: operatorCode,
+        service: "RESTFUL",
+        callback_url_code: "BFM7N",
+        customer_account_number: phoneNumber.replace(/\s+/g, ""),
+        merchant_operation_account_code: "ACC_68FF48E3031B9",
+        transaction_type: "PAYMENT",
+        owner_charge: "CUSTOMER",
+        operator_owner_charge: "MERCHANT",
+        free_info: "fzerfez",
+        operator_code: "CMR_ORANGE",
       };
 
-      console.log('📤 Payload:', JSON.stringify(payload, null, 2));
-      console.log('');
+      console.log("📤 Payload:", JSON.stringify(payload, null, 2));
+      console.log("");
 
-      const response = await axios.post(
-        paymentURL,
-        payload,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Secret': secretKey,
-            'X-Callback-MediaType': 'application/json',
-          },
-          timeout: this.config.timeout,
-        }
-      );
+      const response = await axios.post(paymentURL, payload, {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Secret": secretKey,
+          "X-Callback-MediaType": "application/json",
+        },
+        timeout: this.config.timeout,
+      });
 
-      console.log('📥 Réponse MyPVIT:');
+      console.log("📥 Réponse MyPVIT:");
       console.log(JSON.stringify(response.data, null, 2));
-      console.log('');
+      console.log("");
 
-      if (response.data && (response.data.status_code === '200' || response.data.status === 'PENDING')) {
-        console.log('✅ Paiement initié avec succès');
-        console.log('💳'.repeat(40) + '\n');
+      if (
+        response.data &&
+        (response.data.status_code === "200" ||
+          response.data.status === "PENDING")
+      ) {
+        console.log("✅ Paiement initié avec succès");
+        console.log("💳".repeat(40) + "\n");
 
         return {
           success: true,
@@ -211,19 +211,19 @@ class MyPVITService {
           transactionId: response.data.reference_id,
           merchantReferenceId: response.data.merchant_reference_id,
           operator: response.data.operator,
-          message: response.data.message || 'Paiement initié avec succès',
+          message: response.data.message || "Paiement initié avec succès",
         };
       }
 
       // Si le statut est FAILED
-      if (response.data && response.data.status === 'FAILED') {
-        console.log('❌ Paiement échoué');
-        console.log('💳'.repeat(40) + '\n');
+      if (response.data && response.data.status === "FAILED") {
+        console.log("❌ Paiement échoué");
+        console.log("💳".repeat(40) + "\n");
 
-        throw new Error(response.data.message || 'Le paiement a échoué');
+        throw new Error(response.data.message || "Le paiement a échoué");
       }
 
-      throw new Error(response.data?.message || 'Erreur lors de l\'initiation');
+      throw new Error(response.data?.message || "Erreur lors de l'initiation");
     } catch (error) {
       console.error('\n' + '❌'.repeat(40));
       console.error('ERREUR INITIATION PAIEMENT');
@@ -231,21 +231,39 @@ class MyPVITService {
       console.error('Message:', error.message);
 
       if (error.response) {
-        console.error('Status:', error.response.status);
-        console.error('Data:', JSON.stringify(error.response.data, null, 2));
+        console.error("Status:", error.response.status);
+        console.error("Data:", JSON.stringify(error.response.data, null, 2));
 
         const { status, data } = error.response;
 
+        // Afficher les messages de validation détaillés
+        if (data.messages && Array.isArray(data.messages)) {
+          console.error("\n📋 Messages de validation MyPVIT:");
+          data.messages.forEach((msg, index) => {
+            console.error(`  ${index + 1}. ${msg}`);
+          });
+        }
+
+        if (status === 422) {
+          const errorMessages =
+            data.messages?.join(", ") ||
+            "Contraintes de validation non respectées";
+          throw new Error(`Erreur de validation MyPVIT: ${errorMessages}`);
+        }
+
         if (status === 401) {
-          throw new Error('Clé secrète expirée ou invalide. Veuillez renouveler la clé.');
+          throw new Error(
+            data.message +
+              "Clé secrète expirée ou invalide. Veuillez renouveler la clé."
+          );
         }
 
         if (status === 403) {
-          throw new Error('URL de réception non activée');
+          throw new Error(data.message + "URL de réception non activée");
         }
 
         if (status === 400) {
-          throw new Error(data.message || 'Données de paiement invalides');
+          throw new Error(data.message || "Données de paiement invalides");
         }
       }
 
