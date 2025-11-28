@@ -78,22 +78,22 @@ class MyPVITService {
 
       // Vérifier la réponse
       if (response.data ) {
-        console.log('✅ Clé secrète renouvelée avec succès !');
-        console.log('🔑 Nouveau secret:', response.data.secret);
-        console.log(`⏱️  Expire dans: ${response.data.expires_in || 'N/A'}s`);
-        console.log('');
+        console.log("✅ Clé secrète renouvelée avec succès !");
+        console.log("🔑 Nouveau secret:", response.data.secret);
+        console.log(`⏱️  Expire dans: ${response.data.expires_in || "N/A"}s`);
+        console.log("");
 
         // Mettre à jour la clé dans la configuration
-        this.config.secretKey = response.data.secret;
-        this.axios.defaults.headers['X-Secret'] = response.data.secret;
+        // this.config.secretKey = response.data.secret;
+        // this.axios.defaults.headers['X-Secret'] = response.data.secret;
 
-        console.log('✅'.repeat(40) + '\n');
+        console.log("✅".repeat(40) + "\n");
 
         return {
           success: true,
           secret: response.data.secret,
           expiresIn: response.data.expires_in,
-          message: 'Clé secrète renouvelée avec succès',
+          message: "Clé secrète renouvelée avec succès",
         };
       }
 
