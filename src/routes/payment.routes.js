@@ -36,6 +36,10 @@ router.post('/renew-secret', verifyApiKey, paymentController.renewSecret);
 router.post('/webhook', verifyWebhookSource, paymentController.handleWebhook);
 
 // Recevoir le token MyPVIT (callback automatique)
-router.post('/receive-token', paymentController.receiveToken);
+router.post(
+  "/receive-token",
+  verifyWebhookSource,
+  paymentController.receiveToken
+);
 
 module.exports = router;
