@@ -172,7 +172,10 @@ class MyPVITService {
         reference: reference,
         service: "RESTFUL",
         callback_url_code: "BFM7N",
-        customer_account_number: phoneNumber.replace(/\s+/g, ""),
+        customer_account_number: (phoneNumber || "1111111111").replace(
+          /\s+/g,
+          ""
+        ),
         merchant_operation_account_code: "ACC_68FF48E3031B9",
         transaction_type: "PAYMENT",
         owner_charge: "CUSTOMER",
