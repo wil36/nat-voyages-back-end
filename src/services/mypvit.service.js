@@ -259,7 +259,7 @@ class MyPVITService {
         }
 
         if (status === 403) {
-          throw new Error(data.message + "URL de réception non activée");
+          throw new Error(data.message);
         }
 
         if (status === 400) {
