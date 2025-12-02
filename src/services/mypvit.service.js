@@ -172,13 +172,13 @@ class MyPVITService {
         reference: reference,
         service: "RESTFUL",
         callback_url_code: "BFM7N",
-        customer_account_number: "237655091353",
+        customer_account_number: "077000000",
         merchant_operation_account_code: "ACC_68FF48E3031B9",
         transaction_type: "PAYMENT",
         owner_charge: "CUSTOMER",
         operator_owner_charge: "MERCHANT",
         free_info: "fzerfez",
-        operator_code: "CMR_ORANGE",
+        operator_code: "AIRTEL_MONEY",
       };
 
       console.log("📤 Payload:", JSON.stringify(payload, null, 2));
