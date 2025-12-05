@@ -188,33 +188,26 @@ class PaymentController {
       console.log("✅ Transaction sauvegardée:", transactionRef.id);
 
       // ========================================
-      // ÉTAPE 5 : Mettre à jour les ventes avec le transaction ID MyPVIT
+      // ÉTAPE 5 : Mettre à jour la vente avec le transaction ID MyPVIT
       // ========================================
-      console.log("📝 Mise à jour des ventes avec transaction_mypvit_id...");
+      console.log("📝 Mise à jour de la vente avec transaction_mypvit_id...");
 
-      const ventesQuery = await db
-        .collection("ventes")
-        .where("reservationId", "==", reservationId)
-        .get();
+      const venteRef = db.collection("ventes").doc(reservationId);
+      const venteDoc = await venteRef.get();
 
-      if (!ventesQuery.empty) {
-        const batch = db.batch();
-
-        ventesQuery.forEach((doc) => {
-          batch.update(doc.ref, {
-            transaction_mypvit_id: paymentResult.transactionId,
-            transaction_status: paymentResult.status,
-            updatedAt: new Date().toISOString(),
-          });
+      if (venteDoc.exists) {
+        await venteRef.update({
+          transaction_mypvit_id: paymentResult.transactionId,
+          transaction_status: paymentResult.status,
+          updatedAt: new Date().toISOString(),
         });
 
-        await batch.commit();
         console.log(
-          `✅ ${ventesQuery.size} vente(s) mise(s) à jour avec transaction_mypvit_id: ${paymentResult.transactionId}`
+          `✅ Vente ${reservationId} mise à jour avec transaction_mypvit_id: ${paymentResult.transactionId}`
         );
       } else {
         console.warn(
-          `⚠️  Aucune vente trouvée pour reservationId: ${reservationId}`
+          `⚠️  Vente non trouvée pour reservationId: ${reservationId}`
         );
       }
 
@@ -354,7 +347,7 @@ class PaymentController {
       // Mettre à jour la transaction dans payment_transactions
       const transactionQuery = await db
         .collection("payment_transactions")
-        .where("transactionId", "==", transactionId)
+        .where("transaction_mypvit_id", "==", transactionId)
         .limit(1)
         .get();
 
