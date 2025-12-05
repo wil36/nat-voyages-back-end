@@ -333,8 +333,14 @@ class PaymentController {
       console.log("📦 Données complètes:", JSON.stringify(req.body, null, 2));
       console.log("=".repeat(80) + "\n");
 
-      const { transactionId, merchantReferenceId, status, amount, operator } =
-        req.body;
+      const {
+        transactionId,
+        merchantReferenceId,
+        status,
+        amount,
+        operator,
+        code,
+      } = req.body;
 
       // Affichage détaillé des tokens
       console.log("🔑 TOKENS EXTRAITS:");
@@ -382,7 +388,7 @@ class PaymentController {
         );
         // Répondre quand même avec succès pour éviter les retries
         return res.status(200).json({
-          responseCode: 200,
+          responseCode: code,
           transactionId: transactionId,
         });
       }
