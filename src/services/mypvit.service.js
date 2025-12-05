@@ -179,7 +179,7 @@ class MyPVITService {
         transaction_type: this.config.transactionType,
         owner_charge: this.config.ownerCharge,
         operator_owner_charge: this.config.operatorOwnerCharge,
-        free_info: JSON.stringify(metadata) || this.config.freeInfo,
+        free_info: this.config.freeInfo,
         operator_code: operatorCode,
       };
 
