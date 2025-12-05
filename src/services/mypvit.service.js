@@ -170,7 +170,7 @@ class MyPVITService {
       const payload = {
         agent: this.config.agentName || "NAT-VOYAGE",
         amount: parseInt(amount) || 500,
-        product: metadata.reservationId || "VOYAGE",
+        product: "VOYAGE",
         reference: reference || this.generateReference(),
         service: this.config.serviceType || "RESTFUL",
         callback_url_code: this.config.callbackURLCode || "BFM7N",
