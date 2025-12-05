@@ -131,7 +131,7 @@ class MyPVITService {
         amount = 500,
         phoneNumber = "",
         reference = this.generateReference(),
-        operatorCode = "CMR_ORANGE",
+        operatorCode,
         secretKey = this.config.secretKey,
         metadata = {},
       } = paymentData;

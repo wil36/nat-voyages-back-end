@@ -16,7 +16,7 @@ class PaymentController {
         reservationId,
         amount,
         phoneNumber,
-        operatorCode = "CMR_ORANGE", // Par défaut Orange
+        operatorCode, // Par défaut Orange
         reference,
         metadata = {},
       } = req.body;
