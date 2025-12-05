@@ -45,14 +45,14 @@ class MyPVITService {
       console.log('📡 URL:', renewURL);
       console.log('📦 Paramètres:');
       console.log('  • operationAccountCode:', this.config.accountCode);
-      console.log('  • receptionUrlCode:', this.config.callbackURLCode);
-      console.log('  • password:', '********');
-      console.log('');
+      console.log("  • receptionUrlCode:", this.config.renewTokenCodeURL);
+      console.log("  • password:", "********");
+      console.log("");
 
       // Créer les paramètres au format x-www-form-urlencoded
       const params = new URLSearchParams({
         operationAccountCode: this.config.accountCode,
-        receptionUrlCode: this.config.callbackURLCode,
+        receptionUrlCode: this.config.renewTokenCodeURL,
         password: this.config.password,
       });
 
@@ -131,7 +131,7 @@ class MyPVITService {
         amount,
         phoneNumber,
         reference = this.generateReference(),
-        operatorCode = "CMR_ORANGE",
+        operatorCode,
         secretKey,
         metadata = {},
       } = paymentData;
@@ -162,23 +162,25 @@ class MyPVITService {
       console.log("  • Opérateur         :", operatorCode);
       console.log("");
 
-      // Endpoint complet avec le code URL
-      const paymentURL = `https://api.mypvit.pro/v2/NZLCPGMDDCTCXQQL/rest`;
+      // Endpoint complet avec le code de paiement depuis la config
+      const paymentURL = `${this.config.baseURL.replace("/v2", "")}/v2/${
+        this.config.paymentCode
+      }/rest`;
 
       const payload = {
-        agent: "NAT-VOYAGE",
-        amount: parseInt(amount) || 800,
+        agent: this.config.agentName,
+        amount: parseInt(amount),
         product: metadata.reservationId || "VOYAGE",
         reference: reference,
-        service: "RESTFUL",
-        callback_url_code: "BFM7N",
-        customer_account_number: "077000000",
-        merchant_operation_account_code: "ACC_68FF48E3031B9",
-        transaction_type: "PAYMENT",
-        owner_charge: "CUSTOMER",
-        operator_owner_charge: "MERCHANT",
-        free_info: "fzerfez",
-        operator_code: "AIRTEL_MONEY",
+        service: this.config.serviceType,
+        callback_url_code: this.config.callbackURLCode,
+        customer_account_number: phoneNumber.replace(/\s+/g, ""),
+        merchant_operation_account_code: this.config.accountCode,
+        transaction_type: this.config.transactionType,
+        owner_charge: this.config.ownerCharge,
+        operator_owner_charge: this.config.operatorOwnerCharge,
+        free_info: JSON.stringify(metadata) || this.config.freeInfo,
+        operator_code: operatorCode,
       };
 
       console.log("📤 Payload:", JSON.stringify(payload, null, 2));
