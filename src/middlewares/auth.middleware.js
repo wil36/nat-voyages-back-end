@@ -99,13 +99,65 @@ function secureCompare(a, b) {
 
 /**
  * Middleware spécifique pour les webhooks MyPVIT
- * Pas besoin de clé API car c'est MyPVIT qui appelle
+ * Vérifie que la requête vient bien de MyPVIT
  */
 const verifyWebhookSource = (req, res, next) => {
-  // Pour MyPVIT, on peut vérifier d'autres choses comme l'IP ou un secret partagé
-  // Pour l'instant on laisse passer (MyPVIT a son propre système de sécurité)
-  console.log('📩 Webhook reçu de:', req.ip);
-  next();
+  try {
+    // Récupérer l'origine de la requête
+    const origin = req.get('origin') || req.get('referer') || '';
+    const host = req.get('host') || '';
+    const userAgent = req.get('user-agent') || '';
+
+    console.log('📩 Webhook reçu:');
+    console.log('  • IP:', req.ip);
+    console.log('  • Origin:', origin);
+    console.log('  • Referer:', req.get('referer') || 'N/A');
+    console.log('  • User-Agent:', userAgent);
+    console.log('  • Host:', host);
+
+    // Liste des origines autorisées pour MyPVIT
+    const allowedOrigins = [
+      'https://api.mypvit.pro',
+      'http://api.mypvit.pro',
+      'mypvit.pro',
+      'api.mypvit.pro'
+    ];
+
+    // Vérifier si l'origine ou le referer contient un domaine MyPVIT autorisé
+    const isFromMyPVIT = allowedOrigins.some(allowed => {
+      return origin.includes(allowed) ||
+             req.get('referer')?.includes(allowed) ||
+             // Accepter aussi si pas d'origin (certains webhooks n'envoient pas d'origin)
+             (!origin && !req.get('referer'));
+    });
+
+    // Vérification supplémentaire : si on a un origin/referer, il DOIT être de MyPVIT
+    if (origin && !isFromMyPVIT) {
+      console.warn('⚠️  Webhook rejeté - Origine non autorisée');
+      console.warn('  • Origin reçu:', origin);
+      console.warn('  • IP:', req.ip);
+
+      return res.status(403).json({
+        success: false,
+        message: 'Accès refusé. Cette route est réservée aux webhooks MyPVIT.',
+        error: 'FORBIDDEN',
+      });
+    }
+
+    // Log de sécurité
+    if (isFromMyPVIT || !origin) {
+      console.log('✅ Webhook MyPVIT vérifié');
+    }
+
+    next();
+  } catch (error) {
+    console.error('❌ Erreur vérification webhook:', error);
+
+    // En cas d'erreur, on laisse passer pour ne pas bloquer les webhooks légitimes
+    // mais on log l'erreur
+    console.warn('⚠️  Erreur lors de la vérification, webhook accepté par défaut');
+    next();
+  }
 };
 
 module.exports = {

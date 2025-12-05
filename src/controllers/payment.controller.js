@@ -382,9 +382,8 @@ class PaymentController {
         );
         // Répondre quand même avec succès pour éviter les retries
         return res.status(200).json({
-          success: true,
-          transactionId,
-          message: "Webhook reçu mais aucune vente trouvée",
+          responseCode: 200,
+          transactionId: transactionId,
         });
       }
 
@@ -447,10 +446,9 @@ class PaymentController {
       console.log("✅".repeat(40) + "\n");
 
       // Répondre à MyPVIT avec accusé de réception
-      res.status(200).json({
-        success: true,
-        transactionId,
-        message: "Webhook traité avec succès",
+      return res.status(200).json({
+        responseCode: 200,
+        transactionId: transactionId,
       });
     } catch (error) {
       console.error("❌ Erreur traitement webhook:", error);
