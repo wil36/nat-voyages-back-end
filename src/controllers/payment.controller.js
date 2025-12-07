@@ -393,7 +393,9 @@ class PaymentController {
 
       ventesQuery.forEach((doc) => {
         batch.update(doc.ref, {
+          status: status == "SUCCESS" ? "Payer" : "Echouer",
           transaction_status: status,
+          paymentConfirmedAt: new Date().toISOString(),
           webhookReceivedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });

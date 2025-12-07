@@ -169,22 +169,18 @@ class MyPVITService {
 
       const payload = {
         agent: this.config.agentName || "NAT-VOYAGE",
-        amount: parseInt(amount) || 500,
+        amount: parseInt(amount),
         product: "NAT-VOYAGE",
-        reference: reference || this.generateReference(),
-        service: this.config.serviceType || "RESTFUL",
-        callback_url_code: this.config.callbackURLCode || "BFM7N",
-        customer_account_number: (phoneNumber || "").replace(
-          /\s+/g,
-          "077000000"
-        ),
-        merchant_operation_account_code:
-          this.config.accountCode || "ACC_68FF48E3031B9",
-        transaction_type: this.config.transactionType || "PAYMENT",
-        owner_charge: this.config.ownerCharge || "CUSTOMER",
-        operator_owner_charge: this.config.operatorOwnerCharge || "MERCHANT",
-        free_info: reference || this.config.freeInfo || "Paiement NAT-VOYAGE",
-        operator_code: operatorCode || "AIRTEL_MONEY",
+        reference: reference,
+        service: this.config.serviceType,
+        callback_url_code: this.config.callbackURLCode,
+        customer_account_number: phoneNumber.replace(/\s+/g, ""),
+        merchant_operation_account_code: this.config.accountCode,
+        transaction_type: this.config.transactionType,
+        owner_charge: this.config.ownerCharge,
+        operator_owner_charge: this.config.operatorOwnerCharge,
+        free_info: reference,
+        operator_code: operatorCode,
       };
 
       console.log("📤 Payload:", JSON.stringify(payload, null, 2));
