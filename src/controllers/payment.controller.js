@@ -192,11 +192,14 @@ class PaymentController {
       // ========================================
       console.log("📝 Mise à jour de la vente avec transaction_mypvit_id...");
 
-      const venteRef = db.collection("ventes").doc(reservationId);
-      const venteDoc = await venteRef.get();
+      const ventesSnapshot = await db
+        .collection("ventes")
+        .where("reservationId", "==", reservationId)
+        .get();
 
-      if (venteDoc.exists) {
-        await venteRef.update({
+      if (!ventesSnapshot.empty) {
+        const venteDoc = ventesSnapshot.docs[0];
+        await venteDoc.ref.update({
           transaction_mypvit_id: paymentResult.transactionId,
           transaction_status: paymentResult.status,
           updatedAt: new Date().toISOString(),
