@@ -117,10 +117,12 @@ const verifyWebhookSource = (req, res, next) => {
 
     // Liste des origines autorisées pour MyPVIT
     const allowedOrigins = [
-      'https://api.mypvit.pro',
-      'http://api.mypvit.pro',
-      'mypvit.pro',
-      'api.mypvit.pro'
+      "https://api.mypvit.pro",
+      "http://api.mypvit.pro",
+      "mypvit.pro",
+      "api.mypvit.pro",
+      "http://localhost:3000",
+      "https://nat-voyages-client-ufpe.vercel.app",
     ];
 
     // Vérifier si l'origine ou le referer contient un domaine MyPVIT autorisé
