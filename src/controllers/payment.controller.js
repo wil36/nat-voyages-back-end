@@ -448,7 +448,7 @@ class PaymentController {
         const reservationId = firstVente.reservationId;
 
         if (reservationId) {
-          await this.releaseReservation(reservationId);
+          await releaseReservation(reservationId);
         }
       }
 
