@@ -448,7 +448,7 @@ class PaymentController {
         const reservationId = firstVente.reservationId;
 
         if (reservationId) {
-          await this.releaseReservation(reservationId);
+          await PaymentController.releaseReservation(reservationId);
         }
       }
 
@@ -506,9 +506,9 @@ class PaymentController {
 
   /**
    * Libérer les places d'une réservation échouée
-   * @private
+   * @static
    */
-  async releaseReservation(reservationId) {
+  static async releaseReservation(reservationId) {
     try {
       // Récupérer les ventes
       const ventesQuery = await db
