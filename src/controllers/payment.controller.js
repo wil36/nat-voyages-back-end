@@ -458,7 +458,7 @@ class PaymentController {
 
       // Répondre à MyPVIT avec accusé de réception
       return res.status(200).json({
-        responseCode: 200,
+        responseCode: code,
         transactionId: transactionId,
       });
     } catch (error) {
