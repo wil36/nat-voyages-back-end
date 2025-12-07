@@ -190,6 +190,7 @@ class PaymentController {
       // ========================================
       // ÉTAPE 5 : Mettre à jour la vente avec le transaction ID MyPVIT
       // ========================================
+
       console.log("📝 Mise à jour de la vente avec transaction_mypvit_id...");
 
       const ventesSnapshot = await db
@@ -338,44 +339,50 @@ class PaymentController {
         code,
       } = req.body;
 
-      // Affichage détaillé des tokens
-      console.log("🔑 TOKENS EXTRAITS:");
-      console.log("  • Transaction ID    :", transactionId || "N/A");
-      console.log("  • Merchant Ref      :", merchantReferenceId || "N/A");
-      console.log("  • Status            :", status || "N/A");
-      console.log("  • Amount            :", amount ? `${amount} XAF` : "N/A");
-      console.log("  • Operator          :", operator || "N/A");
-      console.log("");
+       console.log(
+         "⏳ Attente de 10 secondes avant mise à jour de la vente..."
+       );
+       await new Promise((resolve) => setTimeout(resolve, 10000));
 
-      // Mettre à jour la transaction dans payment_transactions
-      const transactionQuery = await db
-        .collection("payment_transactions")
-        .where("transaction_mypvit_id", "==", transactionId)
-        .limit(1)
-        .get();
+       // Affichage détaillé des tokens
+       console.log("🔑 TOKENS EXTRAITS:");
+       console.log("  • Transaction ID    :", transactionId || "N/A");
+       console.log("  • Merchant Ref      :", merchantReferenceId || "N/A");
+       console.log("  • Status            :", status || "N/A");
+       console.log("  • Amount            :", amount ? `${amount} XAF` : "N/A");
+       console.log("  • Operator          :", operator || "N/A");
+       console.log("");
 
-      if (!transactionQuery.empty) {
-        const transactionDoc = transactionQuery.docs[0];
-        await transactionDoc.ref.update({
-          status,
-          operator,
-          webhookReceivedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-        console.log(
-          `✅ Transaction ${transactionId} mise à jour dans payment_transactions`
-        );
-      }
+       // Mettre à jour la transaction dans payment_transactions
+       const transactionQuery = await db
+         .collection("payment_transactions")
+         .where("transaction_mypvit_id", "==", transactionId)
+         .limit(1)
+         .get();
 
-      // Trouver et mettre à jour les ventes via transaction_mypvit_id
-      console.log(
-        `🔍 Recherche des ventes avec transaction_mypvit_id: ${transactionId}`
-      );
+       if (!transactionQuery.empty) {
+         const transactionDoc = transactionQuery.docs[0];
+         await transactionDoc.ref.update({
+           status,
+           operator,
+           webhookReceivedAt: new Date().toISOString(),
+           updatedAt: new Date().toISOString(),
+         });
+         console.log(
+           `✅ Transaction ${transactionId} mise à jour dans payment_transactions`
+         );
+       }
 
-      const ventesQuery = await db
-        .collection("ventes")
-        .where("transaction_mypvit_id", "==", transactionId)
-        .get();
+       // Trouver et mettre à jour les ventes via transaction_mypvit_id
+       console.log(
+         `🔍 Recherche des ventes avec transaction_mypvit_id: ${transactionId}`
+       );
+
+       const ventesQuery = await db
+         .collection("ventes")
+         .where("transaction_mypvit_id", "==", transactionId)
+         .limit(1)
+         .get();
 
       if (ventesQuery.empty) {
         console.warn(
