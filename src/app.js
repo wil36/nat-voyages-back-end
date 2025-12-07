@@ -24,9 +24,23 @@ const app = express();
 // Helmet pour sécuriser les headers HTTP
 app.use(helmet());
 
-// CORS - Autoriser le frontend
+// CORS - Autoriser le frontend (localhost + production)
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : ['http://localhost:3000'];
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Autoriser les requêtes sans origin (mobile apps, curl, postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`⚠️  CORS: Origine non autorisée: ${origin}`);
+      callback(new Error('Non autorisé par CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200,
 };

@@ -174,7 +174,7 @@ class MyPVITService {
         reference: reference,
         service: this.config.serviceType,
         callback_url_code: this.config.callbackURLCode,
-        customer_account_number: phoneNumber.replace(/\s+/g, ""),
+        customer_account_number: (phoneNumber || "").replace(/\s+/g, ""),
         merchant_operation_account_code: this.config.accountCode,
         transaction_type: this.config.transactionType,
         owner_charge: this.config.ownerCharge,
