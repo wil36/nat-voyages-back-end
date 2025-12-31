@@ -107,48 +107,59 @@ const verifyWebhookSource = (req, res, next) => {
     const origin = req.get('origin') || req.get('referer') || '';
     const host = req.get('host') || '';
     const userAgent = req.get('user-agent') || '';
+    const clientIp = req.ip || req.connection.remoteAddress;
 
-    console.log('📩 Webhook reçu:');
-    console.log('  • IP:', req.ip);
-    console.log('  • Origin:', origin);
-    console.log('  • Referer:', req.get('referer') || 'N/A');
-    console.log('  • User-Agent:', userAgent);
-    console.log('  • Host:', host);
+    console.log("📩 Webhook reçu:");
+    console.log("  • IP:", clientIp);
+    console.log("  • Origin:", origin);
+    console.log("  • Referer:", req.get("referer") || "N/A");
+    console.log("  • User-Agent:", userAgent);
+    console.log("  • Host:", host);
 
-    // Liste des origines autorisées pour MyPVIT
-    const allowedOrigins = [
-      "https://api.mypvit.pro",
-      "http://api.mypvit.pro",
-      "mypvit.pro",
-      "api.mypvit.pro",
-      "http://localhost:3000",
-      "https://nat-voyages-client-ufpe.vercel.app",
+    // Liste des IPs autorisées pour MyPVIT
+    const allowedIPs = [
+      "176.31.65.18",
+      "176.31.65.20",
+      "176.31.65.21",
+      "12.59.249.167",
     ];
 
-    // Vérifier si l'origine ou le referer contient un domaine MyPVIT autorisé
-    const isFromMyPVIT = allowedOrigins.some(allowed => {
-      return origin.includes(allowed) ||
-             req.get('referer')?.includes(allowed) ||
-             // Accepter aussi si pas d'origin (certains webhooks n'envoient pas d'origin)
-             (!origin && !req.get('referer'));
+    // Liste des origines autorisées pour MyPVIT
+    const allowedOrigins = ["https://api.mypvit.pro"];
+
+    // Vérifier l'IP
+    const isFromAllowedIP = allowedIPs.some((allowedIP) => {
+      return clientIp?.includes(allowedIP);
     });
 
-    // Vérification supplémentaire : si on a un origin/referer, il DOIT être de MyPVIT
-    if (origin && !isFromMyPVIT) {
-      console.warn('⚠️  Webhook rejeté - Origine non autorisée');
-      console.warn('  • Origin reçu:', origin);
-      console.warn('  • IP:', req.ip);
+    // Vérifier si l'origine ou le referer contient un domaine MyPVIT autorisé
+    const isFromMyPVIT = allowedOrigins.some((allowed) => {
+      return (
+        origin.includes(allowed) ||
+        req.get("referer")?.includes(allowed) ||
+        // Accepter aussi si pas d'origin (certains webhooks n'envoient pas d'origin)
+        (!origin && !req.get("referer"))
+      );
+    });
+
+    // Vérification : si on a un origin/referer et qu'il n'est pas autorisé, vérifier l'IP
+    if (origin && !isFromMyPVIT && !isFromAllowedIP) {
+      console.warn("⚠️  Webhook rejeté - Origine et IP non autorisées");
+      console.warn("  • Origin reçu:", origin);
+      console.warn("  • IP:", clientIp);
 
       return res.status(403).json({
         success: false,
-        message: 'Accès refusé. Cette route est réservée aux webhooks MyPVIT.',
-        error: 'FORBIDDEN',
+        message: "Accès refusé. Cette route est réservée aux webhooks MyPVIT.",
+        error: "FORBIDDEN",
       });
     }
 
     // Log de sécurité
-    if (isFromMyPVIT || !origin) {
-      console.log('✅ Webhook MyPVIT vérifié');
+    if (isFromAllowedIP) {
+      console.log("✅ Webhook MyPVIT vérifié (IP autorisée)");
+    } else if (isFromMyPVIT || !origin) {
+      console.log("✅ Webhook MyPVIT vérifié (origine autorisée)");
     }
 
     next();
