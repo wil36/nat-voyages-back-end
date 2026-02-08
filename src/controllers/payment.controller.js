@@ -82,8 +82,9 @@ class PaymentController {
         console.log("📝 Statut mis à jour: Expired");
         console.log("📤 Lancement de la requête de renouvellement...");
 
-        // Lancer la requête de renouvellement (non bloquante pour le callback)
-        myPVITService.renewSecret().catch((err) => {
+        // Lancer la requête de renouvellement avec le numéro de téléphone
+        // pour déterminer l'environnement (TEST, AIRTEL_MONEY, MOOV_MONEY)
+        myPVITService.renewSecret(phoneNumber).catch((err) => {
           console.error("❌ Erreur renouvellement:", err.message);
         });
 

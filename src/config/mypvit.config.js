@@ -14,15 +14,19 @@ const MYPVIT_CONFIG = {
 
   // Code URL du compte d'opération
   codeURL: process.env.MYPVIT_CODE_URL,
+  codeURLTest: process.env.MYPVIT_CODE_URL_TEST,
 
   // Code pour le endpoint de paiement
   paymentCode: process.env.MYPVIT_PAYMENT_CODE,
+  paymentCodeTest: process.env.MYPVIT_PAYMENT_CODE_TEST,
 
   // Clé secrète pour l'authentification
   secretKey: process.env.MYPVIT_SECRET_KEY,
 
   // Code du compte d'opération
-  accountCode: process.env.MYPVIT_ACCOUNT_CODE,
+  accountCodeMoovMoney: process.env.MYPVIT_ACCOUNT_CODE_MOOV_MONEY,
+  accountCodeAirtelMoney: process.env.MYPVIT_ACCOUNT_CODE_AIRTEL_MONEY,
+  accountCodeTest: process.env.MYPVIT_ACCOUNT_CODE_TEST,
 
   // Mot de passe du compte (pour renouvellement de secret)
   password: process.env.MYPVIT_PASSWORD,
@@ -62,21 +66,132 @@ const MYPVIT_CONFIG = {
     return `${this.baseURL}/${this.codeURL}/${operation}`;
   },
 
+  /**
+   * Déterminer l'environnement de paiement selon le numéro de téléphone
+   * @param {string} phoneNumber - Numéro de téléphone du client
+   * @returns {string} - 'TEST', 'AIRTEL_MONEY', ou 'MOOV_MONEY'
+   */
+  getPaymentEnvironment(phoneNumber) {
+    if (!phoneNumber) return "TEST";
+
+    // Nettoyer le numéro (enlever espaces, +, etc.)
+    const cleanNumber = phoneNumber.replace(/[\s+\-()]/g, "");
+
+    // Vérifier si c'est un numéro de test (sandbox)
+    // Les numéros de test commencent généralement par des préfixes spécifiques
+    if (this.environment === "sandbox") {
+      return "TEST";
+    }
+
+    // Préfixes Gabon - Airtel: 074, 076, 077
+    // Préfixes Gabon - Moov: 062, 066
+    const airtelPrefixes = [
+      "24174",
+      "24176",
+      "24177",
+      "074",
+      "076",
+      "077",
+      "74",
+      "76",
+      "77",
+    ];
+    const moovPrefixes = ["24162", "24166", "062", "066", "62", "66"];
+
+    // Vérifier Airtel
+    for (const prefix of airtelPrefixes) {
+      if (cleanNumber.startsWith(prefix)) {
+        return "AIRTEL_MONEY";
+      }
+    }
+
+    // Vérifier Moov
+    for (const prefix of moovPrefixes) {
+      if (cleanNumber.startsWith(prefix)) {
+        return "MOOV_MONEY";
+      }
+    }
+
+    // Par défaut, utiliser TEST
+    return "TEST";
+  },
+
+  /**
+   * Obtenir le code du compte selon le numéro de téléphone
+   * @param {string} phoneNumber - Numéro de téléphone
+   * @returns {string} - Code du compte d'opération
+   */
+  getAccountCodeByPhone(phoneNumber) {
+    const env = this.getPaymentEnvironment(phoneNumber);
+
+    switch (env) {
+      case "AIRTEL_MONEY":
+        return this.accountCodeAirtelMoney;
+      case "MOOV_MONEY":
+        return this.accountCodeMoovMoney;
+      case "TEST":
+      default:
+        return this.accountCodeTest;
+    }
+  },
+
+  /**
+   * Obtenir le code opérateur selon le numéro de téléphone
+   * @param {string} phoneNumber - Numéro de téléphone
+   * @returns {string} - Code opérateur MyPVIT
+   */
+  getOperatorCodeByPhone(phoneNumber) {
+    const env = this.getPaymentEnvironment(phoneNumber);
+
+    switch (env) {
+      case "AIRTEL_MONEY":
+        return "AIRTEL_MONEY";
+      case "MOOV_MONEY":
+        return "MOOV_MONEY";
+      case "TEST":
+      default:
+        return "AIRTEL_MONEY"; // Opérateur test par défaut
+    }
+  },
+
+  /**
+   * Obtenir le code URL selon l'environnement
+   * @param {string} phoneNumber - Numéro de téléphone
+   * @returns {string} - Code URL
+   */
+  getCodeURLByPhone(phoneNumber) {
+    const env = this.getPaymentEnvironment(phoneNumber);
+    return env === "TEST" ? this.codeURLTest : this.codeURL;
+  },
+
+  /**
+   * Obtenir le code de paiement selon l'environnement
+   * @param {string} phoneNumber - Numéro de téléphone
+   * @returns {string} - Code de paiement
+   */
+  getPaymentCodeByPhone(phoneNumber) {
+    const env = this.getPaymentEnvironment(phoneNumber);
+    return env === "TEST" ? this.paymentCodeTest : this.paymentCode;
+  },
+
   // Valider la configuration
   validate() {
-    const required = ["codeURL", "secretKey", "accountCode", "callbackURLCode"];
+    const required = ["codeURL", "callbackURLCode"];
 
     const missing = required.filter((key) => !this[key]);
 
     if (missing.length > 0) {
       throw new Error(
         `Configuration MyPVIT incomplète. Variables manquantes: ${missing.join(
-          ", "
-        )}`
+          ", ",
+        )}`,
       );
     }
 
     console.log("✅ Configuration MyPVIT validée");
+    console.log(
+      "   Environnements disponibles: TEST, AIRTEL_MONEY, MOOV_MONEY",
+    );
     return true;
   },
 };

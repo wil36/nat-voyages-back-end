@@ -30,28 +30,36 @@ class MyPVITService {
   /**
    * Renouveler la clé secrète MyPVIT
    * Requête POST synchrone qui attend la réponse avant de continuer
+   * @param {string} phoneNumber - Numéro de téléphone pour déterminer l'environnement (TEST, AIRTEL_MONEY, MOOV_MONEY)
    */
-  async renewSecret() {
+  async renewSecret(phoneNumber = null) {
     try {
+      // Déterminer l'environnement selon le numéro de téléphone
+      const paymentEnv = this.config.getPaymentEnvironment(phoneNumber);
+      const accountCode = this.config.getAccountCodeByPhone(phoneNumber);
+      const codeURL = this.config.getCodeURLByPhone(phoneNumber);
+
       console.log('\n' + '🔄'.repeat(40));
       console.log('RENOUVELLEMENT DE LA CLÉ SECRÈTE MYPVIT');
       console.log('🔄'.repeat(40));
       console.log('⏰ Timestamp:', new Date().toLocaleString('fr-FR'));
+      console.log('📱 Numéro de téléphone:', phoneNumber || 'Non fourni');
+      console.log('🌍 Environnement de paiement:', paymentEnv);
       console.log('');
 
       // URL complète pour renouveler le secret
-      const renewURL = `https://api.mypvit.pro/${this.config.codeURL}/renew-secret`;
+      const renewURL = `https://api.mypvit.pro/${codeURL}/renew-secret`;
 
       console.log('📡 URL:', renewURL);
       console.log('📦 Paramètres:');
-      console.log('  • operationAccountCode:', this.config.accountCode);
+      console.log('  • operationAccountCode:', accountCode);
       console.log("  • receptionUrlCode:", this.config.renewTokenCodeURL);
       console.log("  • password:", "********");
       console.log("");
 
       // Créer les paramètres au format x-www-form-urlencoded
       const params = new URLSearchParams({
-        operationAccountCode: this.config.accountCode,
+        operationAccountCode: accountCode,
         receptionUrlCode: this.config.renewTokenCodeURL,
         password: this.config.password,
       });
@@ -83,16 +91,14 @@ class MyPVITService {
         console.log(`⏱️  Expire dans: ${response.data.expires_in || "N/A"}s`);
         console.log("");
 
-        // Mettre à jour la clé dans la configuration
-        // this.config.secretKey = response.data.secret;
-        // this.axios.defaults.headers['X-Secret'] = response.data.secret;
-
         console.log("✅".repeat(40) + "\n");
 
         return {
           success: true,
           secret: response.data.secret,
           expiresIn: response.data.expires_in,
+          paymentEnvironment: paymentEnv,
+          accountCode: accountCode,
           message: "Clé secrète renouvelée avec succès",
         };
       }
@@ -119,9 +125,9 @@ class MyPVITService {
    * Initier un paiement REST
    * @param {Object} paymentData
    * @param {number} paymentData.amount - Montant en XAF
-   * @param {string} paymentData.phoneNumber - Numéro du client
+   * @param {string} paymentData.phoneNumber - Numéro du client (détermine l'environnement: TEST, AIRTEL_MONEY, MOOV_MONEY)
    * @param {string} paymentData.reference - Référence unique (optionnel)
-   * @param {string} paymentData.operatorCode - Code opérateur (CMR_ORANGE, CMR_MTN, etc.)
+   * @param {string} paymentData.operatorCode - Code opérateur (optionnel, déduit du numéro si non fourni)
    * @param {string} paymentData.secretKey - Clé secrète MyPVIT
    * @param {Object} paymentData.metadata - Données supplémentaires
    */
@@ -131,27 +137,15 @@ class MyPVITService {
         amount = 500,
         phoneNumber = "",
         reference = this.generateReference(),
-        operatorCode,
         secretKey = this.config.secretKey,
         metadata = {},
       } = paymentData;
 
-      // // Validation
-      // if (amount < this.config.minAmount) {
-      //   throw new Error(`Montant minimum: ${this.config.minAmount} XAF`);
-      // }
-
-      // if (amount > this.config.maxAmount) {
-      //   throw new Error(`Montant maximum: ${this.config.maxAmount} XAF`);
-      // }
-
-      // if (!phoneNumber) {
-      //   throw new Error('Numéro de téléphone requis');
-      // }
-
-      // if (!secretKey) {
-      //   throw new Error('Clé secrète requise');
-      // }
+      // Déterminer l'environnement selon le numéro de téléphone
+      const paymentEnv = this.config.getPaymentEnvironment(phoneNumber);
+      const accountCode = this.config.getAccountCodeByPhone(phoneNumber);
+      const operatorCode = paymentData.operatorCode || this.config.getOperatorCodeByPhone(phoneNumber);
+      const paymentCode = this.config.getPaymentCodeByPhone(phoneNumber);
 
       console.log("\n" + "💳".repeat(40));
       console.log(`INITIATION PAIEMENT MYPVIT`);
@@ -159,13 +153,13 @@ class MyPVITService {
       console.log("  • Montant           :", `${amount} XAF`);
       console.log("  • Téléphone         :", phoneNumber);
       console.log("  • Référence         :", reference);
+      console.log("  • Environnement     :", paymentEnv);
+      console.log("  • Compte            :", accountCode);
       console.log("  • Opérateur         :", operatorCode);
       console.log("");
 
-      // Endpoint complet avec le code de paiement depuis la config
-      const paymentURL = `${this.config.baseURL.replace("/v2", "")}/v2/${
-        this.config.paymentCode
-      }/rest`;
+      // Endpoint complet avec le code de paiement selon l'environnement
+      const paymentURL = `${this.config.baseURL.replace("/v2", "")}/v2/${paymentCode}/rest`;
 
       const payload = {
         agent: this.config.agentName || "NAT-VOYAGE",
@@ -175,7 +169,7 @@ class MyPVITService {
         service: this.config.serviceType,
         callback_url_code: this.config.callbackURLCode,
         customer_account_number: (phoneNumber || "").replace(/\s+/g, ""),
-        merchant_operation_account_code: this.config.accountCode,
+        merchant_operation_account_code: accountCode,
         transaction_type: this.config.transactionType,
         owner_charge: this.config.ownerCharge,
         operator_owner_charge: this.config.operatorOwnerCharge,
@@ -184,6 +178,7 @@ class MyPVITService {
       };
 
       console.log("📤 Payload:", JSON.stringify(payload, null, 2));
+      console.log("📡 URL:", paymentURL);
       console.log("");
 
       const response = await axios.post(paymentURL, payload, {
@@ -213,6 +208,8 @@ class MyPVITService {
           transactionId: response.data.reference_id,
           merchantReferenceId: response.data.merchant_reference_id,
           operator: response.data.operator,
+          paymentEnvironment: paymentEnv,
+          accountCode: accountCode,
           message: response.data.message || "Paiement initié avec succès",
         };
       }
