@@ -5,7 +5,7 @@ const { validatePayment } = require('../middleware/validation.middleware');
 const {
   verifyApiKey,
   verifyWebhookSource,
-} = require("../middlewares/auth.middleware");
+} = require("../middleware/auth.middleware");
 
 /**
  * Routes pour les paiements MyPVIT
