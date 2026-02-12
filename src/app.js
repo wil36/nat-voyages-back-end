@@ -46,12 +46,20 @@ const corsOptions = {
     }
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
 
-// Rate limiting général
-app.use('/api/', generalLimiter);
+// Répondre immédiatement aux requêtes preflight OPTIONS
+app.options('*', cors(corsOptions));
+
+// Rate limiting général (exclure les requêtes OPTIONS)
+app.use('/api/', (req, res, next) => {
+  if (req.method === 'OPTIONS') return next();
+  generalLimiter(req, res, next);
+});
 
 // ========================================
 // MIDDLEWARE PARSING
@@ -84,8 +92,11 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Routes paiement avec rate limiting spécifique
-app.use('/api/payment/initiate', paymentLimiter);
+// Routes paiement avec rate limiting spécifique (exclure OPTIONS)
+app.use('/api/payment/initiate', (req, res, next) => {
+  if (req.method === 'OPTIONS') return next();
+  paymentLimiter(req, res, next);
+});
 app.use('/api/payment/webhook', webhookLimiter);
 app.use('/api/payment', paymentRoutes);
 
