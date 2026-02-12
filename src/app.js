@@ -29,31 +29,34 @@ app.set('trust proxy', 1);
 app.use(helmet());
 
 // CORS - Autoriser le frontend (localhost + production)
-const allowedOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-  : ['http://localhost:3000'];
+  // const allowedOrigins = process.env.FRONTEND_URL
+  //   ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  //   : ['http://localhost:3000'];
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Autoriser les requêtes sans origin (mobile apps, curl, postman)
-    if (!origin) return callback(null, true);
+// const corsOptions = {
+//   origin: function (origin, callback) {
+//     // Autoriser les requêtes sans origin (mobile apps, curl, postman)
+//     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.warn(`⚠️  CORS: Origine non autorisée: ${origin}`);
-      callback(new Error('Non autorisé par CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
-  optionsSuccessStatus: 200,
-};
-app.use(cors(corsOptions));
+//     if (allowedOrigins.indexOf(origin) !== -1) {
+//       callback(null, true);
+//     } else {
+//       console.warn(`⚠️  CORS: Origine non autorisée: ${origin}`);
+//       callback(new Error('Non autorisé par CORS'));
+//     }
+//   },
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
+//   optionsSuccessStatus: 200,
+// };
+// app.use(cors(corsOptions));
 
-// Répondre immédiatement aux requêtes preflight OPTIONS
-app.options('*', cors(corsOptions));
+// // Répondre immédiatement aux requêtes preflight OPTIONS
+// app.options('*', cors(corsOptions));
+
+app.use(cors());
+
 
 // Rate limiting général (exclure les requêtes OPTIONS)
 app.use('/api/', (req, res, next) => {
