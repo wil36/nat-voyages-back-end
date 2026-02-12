@@ -17,6 +17,10 @@ const { generalLimiter, paymentLimiter, webhookLimiter } = require('./middleware
 
 const app = express();
 
+// Faire confiance au reverse proxy (Passenger/Nginx)
+// Nécessaire pour que express-rate-limit lise correctement l'IP via X-Forwarded-For
+app.set('trust proxy', 1);
+
 // ========================================
 // MIDDLEWARE SÉCURITÉ
 // ========================================
