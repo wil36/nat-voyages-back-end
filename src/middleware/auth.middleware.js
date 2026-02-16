@@ -8,10 +8,11 @@
  */
 const verifyApiKey = (req, res, next) => {
   try {
-    // Récupérer la clé API depuis les headers
+    // Récupérer la clé API depuis les headers ou le body
     const apiKey =
       req.headers["x-api-key"] ||
-      req.headers["authorization"]?.replace("Bearer ", "");
+      req.headers["authorization"]?.replace("Bearer ", "") ||
+      req.body?.apiKey;
 
     // Vérifier si la clé est fournie
     if (!apiKey) {
