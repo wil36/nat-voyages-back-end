@@ -51,18 +51,30 @@ class PaymentController {
         needsRenewal = true;
       } else {
         const tokenData = tokenDoc.data();
-        const expirationDate = new Date(tokenData.expiration_date);
         const now = new Date();
 
-        console.log("📅 Date actuelle     :", now.toISOString());
-        console.log("📅 Date expiration   :", expirationDate.toISOString());
-
-        if (expirationDate < now) {
-          console.log("⏰ Token expiré !");
+        // Vérifier que le token a un secret et une date d'expiration valide
+        if (!tokenData.secret || !tokenData.expiration_date) {
+          console.log("⚠️  Token incomplet (secret ou expiration_date manquant)");
           needsRenewal = true;
         } else {
-          console.log("✅ Token valide");
-          secretKey = tokenData.secret;
+          const expirationDate = new Date(tokenData.expiration_date);
+
+          if (isNaN(expirationDate.getTime())) {
+            console.log("⚠️  Date d'expiration invalide:", tokenData.expiration_date);
+            needsRenewal = true;
+          } else {
+            console.log("📅 Date actuelle     :", now.toISOString());
+            console.log("📅 Date expiration   :", expirationDate.toISOString());
+
+            if (expirationDate < now) {
+              console.log("⏰ Token expiré !");
+              needsRenewal = true;
+            } else {
+              console.log("✅ Token valide");
+              secretKey = tokenData.secret;
+            }
+          }
         }
       }
 
