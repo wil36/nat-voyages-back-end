@@ -1,5 +1,6 @@
 const myPVITService = require('../services/mypvit.service');
 const { db } = require('../config/firebase.config');
+const MYPVIT_CONFIG = require('../config/mypvit.config');
 
 /**
  * Controller pour gérer les paiements
@@ -37,8 +38,9 @@ class PaymentController {
       // ========================================
       // ÉTAPE 1 : Récupérer et vérifier le token depuis Firebase
       // ========================================
-      console.log("🔍 Récupération du token depuis Firebase...");
-      const tokenRef = db.collection("settings").doc("my_pvit_secret_token");
+      const tokenDocId = MYPVIT_CONFIG.getTokenDocId(phoneNumber);
+      console.log(`🔍 Récupération du token depuis Firebase (${tokenDocId})...`);
+      const tokenRef = db.collection("settings").doc(tokenDocId);
       const tokenDoc = await tokenRef.get();
 
       let secretKey;
@@ -668,8 +670,12 @@ class PaymentController {
         status: "Active",
       };
 
+      // Déterminer le bon document Firebase selon le compte opérateur
+      const tokenDocId = MYPVIT_CONFIG.getTokenDocIdByAccountCode(operation_account_code);
+      console.log(`📂 Document cible: ${tokenDocId}`);
+
       // Référence au document dans Firestore
-      const settingsRef = db.collection("settings").doc("my_pvit_secret_token");
+      const settingsRef = db.collection("settings").doc(tokenDocId);
 
       // Vérifier si le document existe
       const docSnapshot = await settingsRef.get();
@@ -690,7 +696,7 @@ class PaymentController {
       console.log("");
       console.log("💾 Données stockées dans Firestore:");
       console.log("  • Collection       : settings");
-      console.log("  • Document ID      : my_pvit_secret_token");
+      console.log("  • Document ID      :", tokenDocId);
       console.log("  • Secret           : " + secret.substring(0, 10) + "...");
       console.log("  • Account Code     :", operation_account_code);
       console.log("  • Expires In       :", expires_in + "s");

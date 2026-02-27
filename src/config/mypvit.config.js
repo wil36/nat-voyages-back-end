@@ -174,6 +174,40 @@ const MYPVIT_CONFIG = {
     return env === "TEST" ? this.paymentCodeTest : this.paymentCode;
   },
 
+  /**
+   * Obtenir l'ID du document Firebase pour le token selon le numéro de téléphone
+   * @param {string} phoneNumber - Numéro de téléphone
+   * @returns {string} - ID du document Firebase (ex: "my_pvit_token_airtel")
+   */
+  getTokenDocId(phoneNumber) {
+    const env = this.getPaymentEnvironment(phoneNumber);
+    switch (env) {
+      case "AIRTEL_MONEY":
+        return "my_pvit_token_airtel";
+      case "MOOV_MONEY":
+        return "my_pvit_token_moov";
+      case "TEST":
+      default:
+        return "my_pvit_token_test";
+    }
+  },
+
+  /**
+   * Obtenir l'ID du document Firebase à partir du code de compte opérateur
+   * Utilisé par le callback receive-token pour stocker le token dans le bon document
+   * @param {string} accountCode - Code du compte d'opération (ex: "ACC_...")
+   * @returns {string} - ID du document Firebase
+   */
+  getTokenDocIdByAccountCode(accountCode) {
+    if (accountCode === this.accountCodeAirtelMoney) {
+      return "my_pvit_token_airtel";
+    }
+    if (accountCode === this.accountCodeMoovMoney) {
+      return "my_pvit_token_moov";
+    }
+    return "my_pvit_token_test";
+  },
+
   // Valider la configuration
   validate() {
     const required = ["codeURL", "callbackURLCode"];
