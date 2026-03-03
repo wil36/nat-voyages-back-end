@@ -72,16 +72,16 @@ const MYPVIT_CONFIG = {
    * @returns {string} - 'TEST', 'AIRTEL_MONEY', ou 'MOOV_MONEY'
    */
   getPaymentEnvironment(phoneNumber) {
-    if (!phoneNumber) return "TEST";
-
-    // Nettoyer le numéro (enlever espaces, +, etc.)
-    const cleanNumber = phoneNumber.replace(/[\s+\-()]/g, "");
+    // if (!phoneNumber) return "TEST";
 
     // Vérifier si c'est un numéro de test (sandbox)
     // Les numéros de test commencent généralement par des préfixes spécifiques
     if (this.environment === "sandbox") {
       return "TEST";
     }
+
+    // Nettoyer le numéro (enlever espaces, +, etc.)
+    const cleanNumber = phoneNumber.replace(/[\s+\-()]/g, "");
 
     // Préfixes Gabon - Airtel: 074, 076, 077
     // Préfixes Gabon - Moov: 062, 066
@@ -181,6 +181,7 @@ const MYPVIT_CONFIG = {
    */
   getTokenDocId(phoneNumber) {
     const env = this.getPaymentEnvironment(phoneNumber);
+    console.log("env bvhrbhvr : " + env);
     switch (env) {
       case "AIRTEL_MONEY":
         return "my_pvit_token_airtel";
@@ -199,12 +200,34 @@ const MYPVIT_CONFIG = {
    * @returns {string} - ID du document Firebase
    */
   getTokenDocIdByAccountCode(accountCode) {
-    if (accountCode === this.accountCodeAirtelMoney) {
+    const code = (accountCode || "").trim().toLowerCase();
+    const airtel = (this.accountCodeAirtelMoney || "").trim().toLowerCase();
+    const moov = (this.accountCodeMoovMoney || "").trim().toLowerCase();
+
+    console.log(
+      "🔍 getTokenDocIdByAccountCode - reçu    :",
+      JSON.stringify(code),
+    );
+    console.log(
+      "🔍 getTokenDocIdByAccountCode - airtel  :",
+      JSON.stringify(airtel),
+    );
+    console.log(
+      "🔍 getTokenDocIdByAccountCode - moov    :",
+      JSON.stringify(moov),
+    );
+
+    if (code == airtel) {
       return "my_pvit_token_airtel";
     }
-    if (accountCode === this.accountCodeMoovMoney) {
+    if (code == moov) {
       return "my_pvit_token_moov";
     }
+    console.warn(
+      "⚠️  Aucun opérateur correspondant pour accountCode:",
+      code,
+      "→ fallback my_pvit_token_test",
+    );
     return "my_pvit_token_test";
   },
 
