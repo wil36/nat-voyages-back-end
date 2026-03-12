@@ -96,7 +96,7 @@ const MYPVIT_CONFIG = {
       "76",
       "77",
     ];
-    const moovPrefixes = ["24162", "24166", "062", "066", "62", "66"];
+    const moovPrefixes = ["24160", "24162", "24165", "24166", "24168", "060", "062", "065", "066", "068", "60", "62", "65", "66", "68"];
 
     // Vérifier Airtel
     for (const prefix of airtelPrefixes) {
