@@ -333,6 +333,31 @@ MyPVIT n'a pas appelé `/receive-token` dans les 60 secondes. Vérifier que l'UR
 **`The operation account secret key field must only contain letters, numbers, dashes, and underscores`**
 Le `secretKey` passé à MyPVIT est invalide. Vérifier que Firebase contient un token valide dans le bon document (`my_pvit_token_moov` ou `my_pvit_token_airtel`).
 
+**Paiement Moov passe dans le compte test**
+Si `MYPVIT_ENV=sandbox`, la fonction `getPaymentEnvironment()` retourne `"TEST"` pour **tous** les numéros, y compris Moov. C'est le comportement voulu en mode sandbox. En production, vérifier que `MYPVIT_ENV=production` dans le `.env` du serveur.
+
+## Bugs connus et points d'amélioration
+
+> Revue effectuée le 12 mars 2026
+
+### Bugs
+
+| # | Fichier | Description | Priorité |
+|---|---------|-------------|----------|
+| 1 | `src/config/mypvit.config.js:79` | `MYPVIT_ENV=sandbox` force tous les opérateurs en TEST — les numéros Moov/Airtel passent dans le compte test | **Critique** |
+| 2 | `src/controllers/payment.controller.js:372` | Le webhook cherche `transaction_mypvit_id` dans `payment_transactions` mais le champ s'appelle `transactionId` lors de la sauvegarde | **Haut** |
+| 3 | `src/controllers/payment.controller.js:165` | La clé secrète (`secretKey`) est loggée en clair dans la console | **Haut** |
+| 4 | `src/controllers/payment.controller.js:419-448` | Double batch write en cas de paiement SUCCESS (le statut est écrit deux fois de suite) | Moyen |
+| 5 | `src/controllers/payment.controller.js:358` | Attente `setTimeout(10000)` hardcodée dans le webhook — peut provoquer des retries MyPVIT | Moyen |
+
+### Code mort
+
+- `markReservationAsPaid()` dans `payment.controller.js` — méthode définie mais jamais appelée
+
+### Style / maintenance
+
+- Les logs utilisent des répétitions d'emojis (`'❌'.repeat(40)`) difficiles à lire dans les logs serveur en production. Préférer un logger structuré (ex: `winston` ou `pino`).
+
 ## Support
 
 - Support MyPVIT : support@mypvit.pro

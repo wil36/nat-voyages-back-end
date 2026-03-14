@@ -85,18 +85,8 @@ const MYPVIT_CONFIG = {
 
     // Préfixes Gabon - Airtel: 074, 076, 077
     // Préfixes Gabon - Moov: 062, 066
-    const airtelPrefixes = [
-      "24174",
-      "24176",
-      "24177",
-      "074",
-      "076",
-      "077",
-      "74",
-      "76",
-      "77",
-    ];
-    const moovPrefixes = ["24160", "24162", "24165", "24166", "24168", "060", "062", "065", "066", "068", "60", "62", "65", "66", "68"];
+    const airtelPrefixes = ["2417", "07"];
+    const moovPrefixes = ["2416", "06"];
 
     // Vérifier Airtel
     for (const prefix of airtelPrefixes) {
