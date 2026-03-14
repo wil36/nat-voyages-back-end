@@ -162,7 +162,6 @@ class PaymentController {
         }
 
         console.log("✅ Token récupéré depuis Firebase après callback");
-        console.log("🔑 Secret:", secretKey);
       }
 
       // ========================================
@@ -340,7 +339,7 @@ class PaymentController {
       console.log("=".repeat(80));
       console.log(
         "⏰ Timestamp:",
-        new Date().toLocaleString("fr-FR", { timeZone: "Africa/Libreville" })
+        new Date().toLocaleString("fr-FR", { timeZone: "Africa/Libreville" }),
       );
       console.log("📦 Données complètes:", JSON.stringify(req.body, null, 2));
       console.log("=".repeat(80) + "\n");
@@ -354,55 +353,54 @@ class PaymentController {
         code,
       } = req.body;
 
-       console.log(
-         "⏳ Attente de 10 secondes avant mise à jour de la vente..."
-       );
-       await new Promise((resolve) => setTimeout(resolve, 10000));
+      //TODO : A vérifier plus tard si ça ne fait pas de bug
+      console.log("⏳ Attente de 3 secondes avant mise à jour de la vente...");
+      await new Promise((resolve) => setTimeout(resolve, 3000));
 
-       // Affichage détaillé des tokens
-       console.log("🔑 TOKENS EXTRAITS:");
-       console.log("  • Transaction ID    :", transactionId || "N/A");
-       console.log("  • Merchant Ref      :", merchantReferenceId || "N/A");
-       console.log("  • Status            :", status || "N/A");
-       console.log("  • Amount            :", amount ? `${amount} XAF` : "N/A");
-       console.log("  • Operator          :", operator || "N/A");
-       console.log("");
+      // Affichage détaillé des tokens
+      console.log("🔑 TOKENS EXTRAITS:");
+      console.log("  • Transaction ID    :", transactionId || "N/A");
+      console.log("  • Merchant Ref      :", merchantReferenceId || "N/A");
+      console.log("  • Status            :", status || "N/A");
+      console.log("  • Amount            :", amount ? `${amount} XAF` : "N/A");
+      console.log("  • Operator          :", operator || "N/A");
+      console.log("");
 
-       // Mettre à jour la transaction dans payment_transactions
-       const transactionQuery = await db
-         .collection("payment_transactions")
-         .where("transaction_mypvit_id", "==", transactionId)
-         .limit(1)
-         .get();
+      // Mettre à jour la transaction dans payment_transactions
+      const transactionQuery = await db
+        .collection("payment_transactions")
+        .where("transactionId", "==", transactionId)
+        .limit(1)
+        .get();
 
-       if (!transactionQuery.empty) {
-         const transactionDoc = transactionQuery.docs[0];
-         await transactionDoc.ref.update({
-           status,
-           operator,
-           webhookReceivedAt: new Date().toISOString(),
-           updatedAt: new Date().toISOString(),
-         });
-         console.log(
-           `✅ Transaction ${transactionId} mise à jour dans payment_transactions`
-         );
-       }
+      if (!transactionQuery.empty) {
+        const transactionDoc = transactionQuery.docs[0];
+        await transactionDoc.ref.update({
+          status,
+          operator,
+          webhookReceivedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        console.log(
+          `✅ Transaction ${transactionId} mise à jour dans payment_transactions`,
+        );
+      }
 
-       // Trouver et mettre à jour les ventes via transaction_mypvit_id
-       console.log(
-         `🔍 Recherche des ventes avec transaction_mypvit_id: ${transactionId}`
-       );
+      // Trouver et mettre à jour les ventes via transaction_mypvit_id
+      console.log(
+        `🔍 Recherche des ventes avec transaction_mypvit_id: ${transactionId}`,
+      );
 
-       const ventesQuery = await db
-         .collection("ventes")
-         .where("transaction_mypvit_id", "==", transactionId)
-         .limit(1)
-         .get();
+      const ventesQuery = await db
+        .collection("ventes")
+        .where("transaction_mypvit_id", "==", transactionId)
+        .limit(1)
+        .get();
 
       if (ventesQuery.empty) {
         console.warn(
           "⚠️  Aucune vente trouvée pour transaction_mypvit_id:",
-          transactionId
+          transactionId,
         );
         // Répondre quand même avec succès pour éviter les retries
         return res.status(200).json({
@@ -428,34 +426,13 @@ class PaymentController {
 
       await batch.commit();
       console.log(
-        `✅ ${ventesQuery.size} vente(s) mise(s) à jour avec status: ${status}`
+        `✅ ${ventesQuery.size} vente(s) mise(s) à jour avec status: ${status}`,
       );
-
-      // Si paiement réussi, marquer les ventes comme payées
-      if (status === "SUCCESS") {
-        console.log(
-          '💰 Paiement réussi ! Marquage des ventes comme "Payer"...'
-        );
-        const payBatch = db.batch();
-
-        ventesQuery.forEach((doc) => {
-          payBatch.update(doc.ref, {
-            status: "Payer",
-            paymentConfirmedAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
-        });
-
-        await payBatch.commit();
-        console.log(
-          `✅ ${ventesQuery.size} vente(s) marquée(s) comme payée(s)`
-        );
-      }
 
       // Si paiement échoué, marquer les ventes comme annulées et libérer les places
       if (status === "FAILED") {
         console.log(
-          "❌ Paiement échoué ! Annulation des ventes et libération des places..."
+          "❌ Paiement échoué ! Annulation des ventes et libération des places...",
         );
 
         // Récupérer le reservationId depuis la première vente
