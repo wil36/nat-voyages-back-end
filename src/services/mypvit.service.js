@@ -39,9 +39,9 @@ class MyPVITService {
       const accountCode = this.config.getAccountCodeByPhone(phoneNumber);
       const codeURL = this.config.getCodeURLByPhone(phoneNumber);
 
-      console.log('\n' + '🔄'.repeat(40));
+      console.log('\n' + '='.repeat(60));
       console.log('RENOUVELLEMENT DE LA CLÉ SECRÈTE MYPVIT');
-      console.log('🔄'.repeat(40));
+      console.log('='.repeat(60));
       console.log('⏰ Timestamp:', new Date().toLocaleString('fr-FR'));
       console.log('📱 Numéro de téléphone:', phoneNumber || 'Non fourni');
       console.log('🌍 Environnement de paiement:', paymentEnv);
@@ -87,11 +87,8 @@ class MyPVITService {
       // Vérifier la réponse
       if (response.data ) {
         console.log("✅ Clé secrète renouvelée avec succès !");
-        console.log("🔑 Nouveau secret:", response.data.secret);
         console.log(`⏱️  Expire dans: ${response.data.expires_in || "N/A"}s`);
-        console.log("");
-
-        console.log("✅".repeat(40) + "\n");
+        console.log('='.repeat(60) + "\n");
 
         return {
           success: true,
@@ -105,9 +102,8 @@ class MyPVITService {
 
       throw new Error('Réponse invalide du serveur - Clé secrète manquante');
     } catch (error) {
-      console.error('\n' + '❌'.repeat(40));
+      console.error('\n' + '='.repeat(60));
       console.error('ERREUR RENOUVELLEMENT SECRET');
-      console.error('❌'.repeat(40));
       console.error('Message:', error.message);
 
       if (error.response) {
@@ -115,7 +111,7 @@ class MyPVITService {
         console.error('Data:', error.response.data);
       }
 
-      console.error('❌'.repeat(40) + '\n');
+      console.error('='.repeat(60) + '\n');
 
       throw error;
     }
@@ -147,9 +143,9 @@ class MyPVITService {
       const operatorCode = paymentData.operatorCode || this.config.getOperatorCodeByPhone(phoneNumber);
       const paymentCode = this.config.getPaymentCodeByPhone(phoneNumber);
 
-      console.log("\n" + "💳".repeat(40));
-      console.log(`INITIATION PAIEMENT MYPVIT`);
-      console.log("💳".repeat(40));
+      console.log("\n" + "=".repeat(60));
+      console.log("INITIATION PAIEMENT MYPVIT");
+      console.log("=".repeat(60));
       console.log("  • Montant           :", `${amount} XAF`);
       console.log("  • Téléphone         :", phoneNumber);
       console.log("  • Référence         :", reference);
@@ -200,7 +196,7 @@ class MyPVITService {
           response.data.status === "PENDING")
       ) {
         console.log("✅ Paiement initié avec succès");
-        console.log("💳".repeat(40) + "\n");
+        console.log("=".repeat(60) + "\n");
 
         return {
           success: true,
@@ -217,16 +213,15 @@ class MyPVITService {
       // Si le statut est FAILED
       if (response.data && response.data.status === "FAILED") {
         console.log("❌ Paiement échoué");
-        console.log("💳".repeat(40) + "\n");
+        console.log("=".repeat(60) + "\n");
 
         throw new Error(response.data.message || "Le paiement a échoué");
       }
 
       throw new Error(response.data?.message || "Erreur lors de l'initiation");
     } catch (error) {
-      console.error('\n' + '❌'.repeat(40));
+      console.error('\n' + '='.repeat(60));
       console.error('ERREUR INITIATION PAIEMENT');
-      console.error('❌'.repeat(40));
       console.error('Message:', error.message);
 
       if (error.response) {
@@ -266,7 +261,7 @@ class MyPVITService {
         }
       }
 
-      console.error('❌'.repeat(40) + '\n');
+      console.error('='.repeat(60) + '\n');
       throw error;
     }
   }

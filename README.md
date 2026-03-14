@@ -338,25 +338,26 @@ Si `MYPVIT_ENV=sandbox`, la fonction `getPaymentEnvironment()` retourne `"TEST"`
 
 ## Bugs connus et points d'amélioration
 
-> Revue effectuée le 12 mars 2026
+> Revue effectuée le 14 mars 2026
 
 ### Bugs
 
-| # | Fichier | Description | Priorité |
-|---|---------|-------------|----------|
-| 1 | `src/config/mypvit.config.js:79` | `MYPVIT_ENV=sandbox` force tous les opérateurs en TEST — les numéros Moov/Airtel passent dans le compte test | **Critique** |
-| 2 | `src/controllers/payment.controller.js:372` | Le webhook cherche `transaction_mypvit_id` dans `payment_transactions` mais le champ s'appelle `transactionId` lors de la sauvegarde | **Haut** |
-| 3 | `src/controllers/payment.controller.js:165` | La clé secrète (`secretKey`) est loggée en clair dans la console | **Haut** |
-| 4 | `src/controllers/payment.controller.js:419-448` | Double batch write en cas de paiement SUCCESS (le statut est écrit deux fois de suite) | Moyen |
-| 5 | `src/controllers/payment.controller.js:358` | Attente `setTimeout(10000)` hardcodée dans le webhook — peut provoquer des retries MyPVIT | Moyen |
+| # | Fichier | Description | Priorité | Statut |
+|---|---------|-------------|----------|--------|
+| 1 | `src/config/mypvit.config.js:79` | `MYPVIT_ENV=sandbox` force tous les opérateurs en TEST — les numéros Moov/Airtel passent dans le compte test | **Critique** | Comportement voulu en sandbox. S'assurer que `MYPVIT_ENV=production` sur le serveur |
+| 2 | `src/controllers/payment.controller.js:372` | Le webhook cherchait `transaction_mypvit_id` dans `payment_transactions` mais le champ s'appelle `transactionId` | **Haut** | ✅ Corrigé |
+| 3 | `src/controllers/payment.controller.js:165` | La clé secrète (`secretKey`) était loggée en clair dans la console | **Haut** | ✅ Corrigé |
+| 4 | `src/controllers/payment.controller.js:419-448` | Double batch write en cas de paiement SUCCESS (le statut était écrit deux fois de suite) | Moyen | ✅ Corrigé |
+| 5 | `src/controllers/payment.controller.js:358` | Attente `setTimeout` dans le webhook — réduit de 10s à 3s | Moyen | ✅ Réduit |
+| 6 | `src/config/mypvit.config.js:88` | Préfixes opérateurs trop courts (ex: `"74"`, `"60"`) pouvaient causer de faux matches | **Haut** | ✅ Corrigé |
 
 ### Code mort
 
-- `markReservationAsPaid()` dans `payment.controller.js` — méthode définie mais jamais appelée
+- ~~`markReservationAsPaid()` dans `payment.controller.js`~~ — ✅ Supprimé
 
 ### Style / maintenance
 
-- Les logs utilisent des répétitions d'emojis (`'❌'.repeat(40)`) difficiles à lire dans les logs serveur en production. Préférer un logger structuré (ex: `winston` ou `pino`).
+- ~~Les logs utilisent des répétitions d'emojis (`'❌'.repeat(40)`)~~ — ✅ Remplacé par `'='.repeat(60)`
 
 ## Support
 

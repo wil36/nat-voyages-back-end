@@ -22,9 +22,9 @@ class PaymentController {
         metadata = {},
       } = req.body;
 
-      console.log("\n" + "🎫".repeat(40));
+      console.log("\n" + "=".repeat(60));
       console.log("NOUVELLE DEMANDE DE PAIEMENT");
-      console.log("🎫".repeat(40));
+      console.log("=".repeat(60));
       console.log("  • Reservation ID    :", reservationId);
       console.log("  • Amount            :", `${amount} XAF`);
       console.log("  • Phone             :", phoneNumber);
@@ -229,7 +229,7 @@ class PaymentController {
         );
       }
 
-      console.log("🎫".repeat(40) + "\n");
+      console.log("=".repeat(60) + "\n");
 
       return res.status(200).json({
         success: true,
@@ -444,9 +444,9 @@ class PaymentController {
         }
       }
 
-      console.log("\n" + "✅".repeat(40));
+      console.log("\n" + "=".repeat(60));
       console.log("WEBHOOK TRAITÉ AVEC SUCCÈS");
-      console.log("✅".repeat(40) + "\n");
+      console.log("=".repeat(60) + "\n");
 
       // Répondre à MyPVIT avec accusé de réception
       return res.status(200).json({
@@ -461,38 +461,6 @@ class PaymentController {
         success: true,
         message: "Webhook reçu",
       });
-    }
-  }
-
-  /**
-   * Marquer une réservation comme payée
-   * @private
-   */
-  async markReservationAsPaid(reservationId) {
-    try {
-      // Récupérer les ventes associées
-      const ventesQuery = await db
-        .collection("ventes")
-        .where("reservationId", "==", reservationId)
-        .get();
-
-      // Mettre à jour chaque vente
-      const batch = db.batch();
-
-      ventesQuery.forEach((doc) => {
-        batch.update(doc.ref, {
-          status: "Payer",
-          paymentConfirmedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-      });
-
-      await batch.commit();
-
-      console.log(`✅ ${ventesQuery.size} vente(s) marquée(s) comme payée(s)`);
-    } catch (error) {
-      console.error("❌ Erreur marquage ventes:", error);
-      throw error;
     }
   }
 
@@ -613,9 +581,9 @@ class PaymentController {
    */
   async receiveToken(req, res) {
     try {
-      console.log("\n" + "🔑".repeat(40));
+      console.log("\n" + "=".repeat(60));
       console.log("RÉCEPTION DU TOKEN MYPVIT");
-      console.log("🔑".repeat(40));
+      console.log("=".repeat(60));
       console.log("⏰ Timestamp:", new Date().toLocaleString("fr-FR"));
       console.log("📦 Données reçues:", JSON.stringify(req.body, null, 2));
       console.log("");
@@ -692,7 +660,7 @@ class PaymentController {
       console.log("  • Created At       :", tokenData.created_at);
       console.log("  • Expiration Date  :", tokenData.expiration_date);
       console.log("");
-      console.log("✅".repeat(40) + "\n");
+      console.log("=".repeat(60) + "\n");
 
       res.status(200).json({
         success: true,
@@ -705,12 +673,12 @@ class PaymentController {
         },
       });
     } catch (error) {
-      console.error("\n" + "❌".repeat(40));
+      console.error("\n" + "=".repeat(60));
       console.error("ERREUR RÉCEPTION TOKEN");
-      console.error("❌".repeat(40));
+      console.error("=".repeat(60));
       console.error("Message:", error.message);
       console.error("Stack:", error.stack);
-      console.error("❌".repeat(40) + "\n");
+      console.error("=".repeat(60) + "\n");
 
       res.status(500).json({
         success: false,
