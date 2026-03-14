@@ -8,11 +8,10 @@
  */
 const verifyApiKey = (req, res, next) => {
   try {
-    // Récupérer la clé API depuis les headers ou le body
+    // Récupérer la clé API depuis les headers
     const apiKey =
       req.headers["x-api-key"] ||
-      req.headers["authorization"]?.replace("Bearer ", "") ||
-      req.body?.apiKey;
+      req.headers["authorization"]?.replace("Bearer ", "");
 
     // Vérifier si la clé est fournie
     if (!apiKey) {
@@ -130,23 +129,18 @@ const verifyWebhookSource = (req, res, next) => {
     // Liste des origines autorisées pour MyPVIT
     const allowedOrigins = ["https://api.mypvit.pro"];
 
-    // Vérifier l'IP
+    // Vérifier l'IP (comparaison exacte, pas includes pour éviter les faux matches)
     const isFromAllowedIP = allowedIPs.some((allowedIP) => {
-      return clientIp?.includes(allowedIP);
+      return clientIp === allowedIP || clientIp === `::ffff:${allowedIP}`;
     });
 
     // Vérifier si l'origine ou le referer contient un domaine MyPVIT autorisé
     const isFromMyPVIT = allowedOrigins.some((allowed) => {
-      return (
-        origin.includes(allowed) ||
-        req.get("referer")?.includes(allowed) ||
-        // Accepter aussi si pas d'origin (certains webhooks n'envoient pas d'origin)
-        (!origin && !req.get("referer"))
-      );
+      return origin.includes(allowed) || req.get("referer")?.includes(allowed);
     });
 
     // Vérification : si on a un origin/referer et qu'il n'est pas autorisé, vérifier l'IP
-    if (origin && !isFromMyPVIT && !isFromAllowedIP) {
+    if (!isFromMyPVIT && !isFromAllowedIP) {
       console.warn("⚠️  Webhook rejeté - Origine et IP non autorisées");
       console.warn("  • Origin reçu:", origin);
       console.warn("  • IP:", clientIp);

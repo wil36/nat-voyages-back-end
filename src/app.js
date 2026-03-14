@@ -17,8 +17,8 @@ const { generalLimiter, paymentLimiter, webhookLimiter } = require('./middleware
 
 const app = express();
 
-// Faire confiance au reverse proxy (Passenger/Nginx)
-// Nécessaire pour que express-rate-limit lise correctement l'IP via X-Forwarded-For
+// Faire confiance uniquement au premier reverse proxy (Passenger/Nginx sur o2switch)
+// '1' = faire confiance à 1 seul proxy, empêche la falsification de X-Forwarded-For
 app.set('trust proxy', 1);
 
 // ========================================
@@ -43,7 +43,7 @@ const corsOptions = {
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Api-Key"],
   optionsSuccessStatus: 200,
 };
 
@@ -90,7 +90,6 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'NAT Voyages API is running',
-    environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString(),
   });
 });
